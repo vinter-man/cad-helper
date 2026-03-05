@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Generated DXF files
+projects/**/*.dxf
+!projects/examples/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
