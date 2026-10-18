@@ -1,30 +1,28 @@
 #!/usr/bin/env python3
-"""School Alley — gradient tile composition with seating pockets.
+"""School alley, Sofia: a 3 x 50 m walk between two schools.
 
-3m x 50m straight alley between two school buildings.
-Tiles: 600x300, 450x300, 300x300, 300x150, 100x100
-Color gradient: light center → dark edges.
-Seating pockets with pergolas at both ends.
-Flower beds along the sides.
+Paving grades from light in the centre to dark at the edges using five tile
+sizes (600x300, 450x300, 300x300, 300x150, 100x100). A seating pocket with a
+pergola sits at each end, on opposite sides; flower beds run along the walk.
+
+Build: uv run cad-helper build school_alley
 """
-import sys
+
 import random
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
-
-from lib.core import create_document, save, add_layer, draw_rect
-from lib.furniture import draw_pergola, draw_bench
-from lib.planting import draw_shrub, draw_flower_bed, draw_round_bed
-
-OUTPUT = Path(__file__).parent / "school_alley.dxf"
+from cad_helper.checks import Clearance
+from cad_helper.core import add_layer, create_document, draw_rect
+from cad_helper.furniture import draw_bench, draw_pergola
+from cad_helper.planting import draw_flower_bed, draw_round_bed, draw_shrub
+from cad_helper.site import draw_compass, draw_distance
 
 # ── CONFIGURATION ──────────────────────────────────────────────────────────
 
-ALLEY_LENGTH = 50_000   # X axis (east-west)
-ALLEY_WIDTH = 3_000     # Y axis (north-south)
-CURB_W = 150            # curb width
-GAP = 5                 # gap between tiles
+ALLEY_LENGTH = 50_000  # X axis (east-west)
+ALLEY_WIDTH = 3_000  # Y axis (north-south)
+CURB_W = 150  # curb width
+GAP = 5  # gap between tiles
+MIN_CUT = 20  # a remainder at least this wide gets a cut tile; narrower is left as joint
 
 # Tile sizes (width x height, mm)
 TILE_SM = (100, 100)
@@ -38,20 +36,20 @@ TILE_XL = (600, 300)
 # Edge zones: 100x100 tiles, 3 rows = 310mm
 # Transition zones: 150x300 tiles, 1 row = 300mm
 # Center zone: 300-wide columns, mixed heights (600/450/300) + fillers
-EDGE_H = 310         # 3 rows: 100+5+100+5+100
-TRANS_H = 300        # 1 tile height
+EDGE_H = 310  # 3 rows: 100+5+100+5+100
+TRANS_H = 300  # 1 tile height
 
 # Computed Y positions (seamless, no extra gaps between zones)
-EDGE_S_Y = 0                                    # 0..310
-TRANS_S_Y = EDGE_H + GAP                        # 315..615
-CENTER_Y = TRANS_S_Y + TRANS_H + GAP            # 620
-EDGE_N_Y = ALLEY_WIDTH - EDGE_H                 # 2690..3000
-TRANS_N_Y = EDGE_N_Y - GAP - TRANS_H            # 2385..2685
-CENTER_H = TRANS_N_Y - GAP - CENTER_Y           # 1760
+EDGE_S_Y = 0  # 0..310
+TRANS_S_Y = EDGE_H + GAP  # 315..615
+CENTER_Y = TRANS_S_Y + TRANS_H + GAP  # 620
+EDGE_N_Y = ALLEY_WIDTH - EDGE_H  # 2690..3000
+TRANS_N_Y = EDGE_N_Y - GAP - TRANS_H  # 2385..2685
+CENTER_H = TRANS_N_Y - GAP - CENTER_Y  # 1760
 
 # Seating pockets
-POCKET_W = 4_000     # pocket width (along X)
-POCKET_D = 3_500     # pocket depth (extending from alley)
+POCKET_W = 4_000  # pocket width (along X)
+POCKET_D = 3_500  # pocket depth (extending from alley)
 
 # West pocket — extends south
 WP_X = 1_000
@@ -61,20 +59,40 @@ WP_Y = -POCKET_D
 EP_X = 45_000
 EP_Y = ALLEY_WIDTH
 
-SEED = 42
+SEED = 42  # the centre band picks tile heights at random; fixed seed = same drawing every build
+
+PLOT_SCALE = 100
+BOUNDS = (-6_000, WP_Y - 1_500, ALLEY_LENGTH, EP_Y + POCKET_D + 7_000)
+CLEARANCES = [
+    Clearance("FLOWER_BEDS", "TILE_*", 150, "beds stay off the paving"),
+    Clearance("SHRUBS", "TILE_POCKET", 100, "shrubs outside the seating pockets"),
+    Clearance("SHRUBS", "CURB", 50, "shrubs planted off the curbs"),
+    Clearance("SHRUBS", "FLOWER_BEDS", 100, "shrubs and beds kept apart"),
+    Clearance("FLOWER_BED_ROUND", "FLOWER_BEDS", 100, "accent bed clear of the mixborder"),
+]
 
 
 # ── TILE FILLING (vertical, seamless) ──────────────────────────────────────
 
+
+def tile_runs(start, length, size):
+    """(position, size) of the tiles along one axis: whole tiles, then one cut tile
+    if the remainder is at least MIN_CUT, so the run ends flush with start + length."""
+    runs = []
+    pos, end = start, start + length
+    while pos + size <= end:
+        runs.append((pos, size))
+        pos += size + GAP
+    if end - pos >= MIN_CUT:
+        runs.append((pos, end - pos))
+    return runs
+
+
 def fill_grid(msp, x0, y0, area_w, area_h, tw, th, layer):
-    """Fill rectangular area with uniform tiles — no offsets, fully packed."""
-    x = x0
-    while x + tw <= x0 + area_w:
-        y = y0
-        while y + th <= y0 + area_h:
-            draw_rect(msp, x, y, tw, th, layer=layer)
-            y += th + GAP
-        x += tw + GAP
+    """Fill rectangular area with uniform tiles on a plain grid, cut to fit at the far edges."""
+    for x, w in tile_runs(x0, area_w, tw):
+        for y, h in tile_runs(y0, area_h, th):
+            draw_rect(msp, x, y, w, h, layer=layer)
 
 
 def fill_center_zone(msp, x0, y0, area_w, area_h):
@@ -83,14 +101,12 @@ def fill_center_zone(msp, x0, y0, area_w, area_h):
     300mm-wide columns. Odd columns start with a shorter tile for stagger.
     Remaining vertical space filled with 300x150 or 100x100 tiles.
     """
-    col_w = 300
     large_heights = [600, 450, 300]
     large_weights = [3, 3, 4]
-    col = 0
-    x = x0
     y_end = y0 + area_h
 
-    while x + col_w <= x0 + area_w:
+    # The last column is cut to fit the end of the alley.
+    for col, (x, col_w) in enumerate(tile_runs(x0, area_w, 300)):
         y = y0
 
         # Odd columns: start with a 150mm tile for visual stagger
@@ -103,7 +119,7 @@ def fill_center_zone(msp, x0, y0, area_w, area_h):
             candidates = [h for h in large_heights if y + h <= y_end]
             if not candidates:
                 break
-            w = large_weights[:len(candidates)]
+            w = large_weights[: len(candidates)]
             th = random.choices(candidates, weights=w, k=1)[0]
             draw_rect(msp, x, y, col_w, th, layer="TILE_LIGHT")
             y += th + GAP
@@ -119,9 +135,9 @@ def fill_center_zone(msp, x0, y0, area_w, area_h):
             draw_rect(msp, x, y, 100, 100, layer="TILE_DARK")
             draw_rect(msp, x + 105, y, 100, 100, layer="TILE_DARK")
             y += 100 + GAP
-
-        x += col_w + GAP
-        col += 1
+        # Close the column against the transition band with a cut tile.
+        if y_end - y >= MIN_CUT:
+            draw_rect(msp, x, y, col_w, y_end - y, layer="TILE_MID")
 
 
 def fill_pocket(msp, px, py, pw, pd, layer):
@@ -130,6 +146,7 @@ def fill_pocket(msp, px, py, pw, pd, layer):
 
 
 # ── BUILD FUNCTIONS ────────────────────────────────────────────────────────
+
 
 def draw_curbs(msp):
     """Draw curbs along alley and around pockets."""
@@ -144,14 +161,14 @@ def draw_curbs(msp):
     draw_rect(msp, EP_X + POCKET_W, ALLEY_WIDTH, ALLEY_LENGTH - EP_X - POCKET_W, C, layer="CURB")
 
     # West pocket curbs (west, south, east sides)
-    draw_rect(msp, WP_X - C, WP_Y - C, C, POCKET_D + C, layer="CURB")         # west
-    draw_rect(msp, WP_X - C, WP_Y - C, POCKET_W + 2 * C, C, layer="CURB")     # south
+    draw_rect(msp, WP_X - C, WP_Y - C, C, POCKET_D + C, layer="CURB")  # west
+    draw_rect(msp, WP_X - C, WP_Y - C, POCKET_W + 2 * C, C, layer="CURB")  # south
     draw_rect(msp, WP_X + POCKET_W, WP_Y - C, C, POCKET_D + C, layer="CURB")  # east
 
     # East pocket curbs (west, north, east sides)
-    draw_rect(msp, EP_X - C, EP_Y, C, POCKET_D + C, layer="CURB")              # west
+    draw_rect(msp, EP_X - C, EP_Y, C, POCKET_D + C, layer="CURB")  # west
     draw_rect(msp, EP_X - C, EP_Y + POCKET_D, POCKET_W + 2 * C, C, layer="CURB")  # north
-    draw_rect(msp, EP_X + POCKET_W, EP_Y, C, POCKET_D + C, layer="CURB")       # east
+    draw_rect(msp, EP_X + POCKET_W, EP_Y, C, POCKET_D + C, layer="CURB")  # east
 
 
 def draw_tile_bands(msp):
@@ -188,7 +205,7 @@ def draw_pockets(msp, doc):
     # Shrubs flanking the pocket
     draw_shrub(msp, doc, WP_X - 700, WP_Y + POCKET_D / 2, 1000, label="Spiraea")
     draw_shrub(msp, doc, WP_X + POCKET_W + 700, WP_Y + POCKET_D / 2, 1000, label="Spiraea")
-    draw_shrub(msp, doc, WP_X + POCKET_W / 2, WP_Y - 700, 1200, label="Berberis")
+    draw_shrub(msp, doc, WP_X + POCKET_W / 2, WP_Y - 850, 1200, label="Berberis")
 
     # ── East pocket (north side) ──
     fill_pocket(msp, EP_X, EP_Y, POCKET_W, POCKET_D, "TILE_POCKET")
@@ -197,71 +214,118 @@ def draw_pockets(msp, doc):
     draw_bench(msp, doc, EP_X + 600, EP_Y + 1800, w=1800, h=500)
     # Shrubs flanking the pocket
     draw_shrub(msp, doc, EP_X - 700, EP_Y + POCKET_D / 2, 1000, label="Spiraea")
-    draw_shrub(msp, doc, EP_X + POCKET_W + 700, EP_Y + POCKET_D / 2, 1000, label="Spiraea")
-    draw_shrub(msp, doc, EP_X + POCKET_W / 2, EP_Y + POCKET_D + 700, 1200, label="Berberis")
+    draw_shrub(msp, doc, EP_X + POCKET_W + 600, EP_Y + POCKET_D / 2, 600, label="Spiraea")
+    draw_shrub(msp, doc, EP_X + POCKET_W / 2, EP_Y + POCKET_D + 850, 1200, label="Berberis")
 
 
 def draw_flowers(msp, doc):
     """Draw flower beds along the alley."""
     # West side — south of alley
-    draw_flower_bed(msp, doc, [
-        (6_000, -1_800), (9_000, -1_800), (9_000, -400), (6_000, -400)
-    ], name="LAVANDULA")
+    draw_flower_bed(
+        msp,
+        doc,
+        [(7_500, -1_800), (10_500, -1_800), (10_500, -400), (7_500, -400)],
+        name="LAVANDULA",
+    )
 
     # Center-south
-    draw_flower_bed(msp, doc, [
-        (21_000, -1_500), (26_000, -1_500), (26_000, -400), (21_000, -400)
-    ], name="MIXBORDER")
+    draw_flower_bed(
+        msp,
+        doc,
+        [(21_000, -1_500), (26_000, -1_500), (26_000, -400), (21_000, -400)],
+        name="MIXBORDER",
+    )
 
     # Center-north
-    draw_flower_bed(msp, doc, [
-        (23_000, ALLEY_WIDTH + 400), (28_000, ALLEY_WIDTH + 400),
-        (28_000, ALLEY_WIDTH + 1_500), (23_000, ALLEY_WIDTH + 1_500)
-    ], name="MIXBORDER")
+    draw_flower_bed(
+        msp,
+        doc,
+        [
+            (23_000, ALLEY_WIDTH + 400),
+            (28_000, ALLEY_WIDTH + 400),
+            (28_000, ALLEY_WIDTH + 1_500),
+            (23_000, ALLEY_WIDTH + 1_500),
+        ],
+        name="MIXBORDER",
+    )
 
     # East side — north of alley
-    draw_flower_bed(msp, doc, [
-        (40_000, ALLEY_WIDTH + 400), (43_000, ALLEY_WIDTH + 400),
-        (43_000, ALLEY_WIDTH + 1_800), (40_000, ALLEY_WIDTH + 1_800)
-    ], name="ROSES & GRASSES")
+    draw_flower_bed(
+        msp,
+        doc,
+        [
+            (40_000, ALLEY_WIDTH + 400),
+            (43_000, ALLEY_WIDTH + 400),
+            (43_000, ALLEY_WIDTH + 1_800),
+            (40_000, ALLEY_WIDTH + 1_800),
+        ],
+        name="ROSES & GRASSES",
+    )
 
     # Round accent bed — center north
-    draw_round_bed(msp, doc, cx=25_000, cy=ALLEY_WIDTH + 2_500, diameter=2_000)
+    draw_round_bed(
+        msp,
+        doc,
+        cx=25_000,
+        cy=ALLEY_WIDTH + 2_800,
+        diameter=2_000,
+        name="ACCENT BED",
+        layer="FLOWER_BED_ROUND",
+    )
 
 
-def draw_labels(msp):
+def draw_labels(msp, doc):
     """Add project title and dimension labels."""
-    add_layer_ref = None  # layers already added in build()
+    msp.add_text(
+        "SCHOOL ALLEY",
+        height=600,
+        dxfattribs={
+            "layer": "LABELS",
+            "insert": (18_000, ALLEY_WIDTH + 6_000),
+        },
+    )
+    msp.add_text(
+        "Gradient Tile Composition — 3m x 50m",
+        height=300,
+        dxfattribs={
+            "layer": "LABELS",
+            "insert": (15_000, ALLEY_WIDTH + 5_200),
+        },
+    )
 
-    msp.add_text("SCHOOL ALLEY", height=600, dxfattribs={
-        "layer": "LABELS", "insert": (18_000, ALLEY_WIDTH + 6_000),
-    })
-    msp.add_text("Gradient Tile Composition — 3m x 50m", height=300, dxfattribs={
-        "layer": "LABELS", "insert": (15_000, ALLEY_WIDTH + 5_200),
-    })
-
-    # Width dimension
-    msp.add_text("3000 mm", height=200, dxfattribs={
-        "layer": "LABELS", "insert": (-3_000, ALLEY_WIDTH / 2 - 100),
-    })
-    # Length dimension
-    msp.add_text("50000 mm", height=200, dxfattribs={
-        "layer": "LABELS", "insert": (ALLEY_LENGTH / 2 - 500, -2_500),
-    })
+    draw_compass(msp, doc, x=-3_000, y=ALLEY_WIDTH + 1_500, size=1_500)
+    draw_distance(msp, doc, (0, ALLEY_WIDTH), (0, 0), offset=-1_200)
+    draw_distance(msp, doc, (0, WP_Y - CURB_W), (ALLEY_LENGTH, WP_Y - CURB_W), offset=-1_000)
 
     # Band labels (along west edge)
-    msp.add_text("DARK (100x100)", height=120, dxfattribs={
-        "layer": "LABELS", "insert": (-5_000, 80),
-    })
-    msp.add_text("MID (150x300)", height=120, dxfattribs={
-        "layer": "LABELS", "insert": (-5_000, 350),
-    })
-    msp.add_text("LIGHT (300x mixed)", height=120, dxfattribs={
-        "layer": "LABELS", "insert": (-5_000, 1_400),
-    })
+    msp.add_text(
+        "DARK (100x100)",
+        height=150,
+        dxfattribs={
+            "layer": "LABELS",
+            "insert": (-5_000, 80),
+        },
+    )
+    msp.add_text(
+        "MID (150x300)",
+        height=150,
+        dxfattribs={
+            "layer": "LABELS",
+            "insert": (-5_000, 350),
+        },
+    )
+    msp.add_text(
+        "LIGHT (300x mixed)",
+        height=150,
+        dxfattribs={
+            "layer": "LABELS",
+            "insert": (-5_000, 1_400),
+        },
+    )
 
 
 # ── MAIN BUILD ─────────────────────────────────────────────────────────────
+
 
 def build():
     random.seed(SEED)
@@ -296,13 +360,6 @@ def build():
     draw_flowers(msp, doc)
 
     # Phase 5: Labels
-    draw_labels(msp)
+    draw_labels(msp, doc)
 
-    count = len(list(msp))
-    layer_count = len(doc.layers)
-    save(doc, OUTPUT)
-    print(f"Built: {OUTPUT} — {count} entities, {layer_count} layers")
-
-
-if __name__ == "__main__":
-    build()
+    return doc

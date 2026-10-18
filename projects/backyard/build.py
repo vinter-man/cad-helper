@@ -1,349 +1,373 @@
-#!/usr/bin/env python3
-"""Backyard landscape project — Japanese garden style.
+"""Backyard: Japanese garden on a 25 x 40 m plot.
 
-Run from repo root:
-    python projects/backyard/build.py
+Design principles: asymmetry (odd numbers, off-centre placement), layered depth,
+wabi-sabi imperfection, ma (intentional empty space), and stone and water as the
+core elements. Water rises at a spring by the house, runs south under the bridge
+on the tea path and fills the koi pond; the dry garden by the gate stays dry.
 
-Design principles:
-- Asymmetry (odd numbers, off-center placement)
-- Borrowed scenery (shakkei) — layers of depth
-- Wabi-sabi — natural imperfection
-- Ma (negative space) — empty areas are intentional
-- Stones and water as core elements
+Build: uv run cad-helper build backyard
 """
 
-import math
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
-
-from lib.core import create_document, save, add_layer
-from lib.site import draw_plot, draw_house, draw_fence, draw_compass, draw_distance
-from lib.zones import draw_rect_zone, draw_zone
-from lib.paths import draw_path
-from lib.furniture import draw_pergola, draw_bench, draw_table_with_chairs
-from lib.planting import (
-    draw_tree, draw_shrub, draw_flower_bed, draw_round_bed,
-    draw_lawn, draw_hedge,
-)
-from lib.lighting import draw_spotlight
-from lib.japanese import (
-    draw_stone_lantern, draw_zen_garden, draw_stepping_stones,
-    draw_tsukubai, draw_torii, draw_niwaki, draw_bamboo_fence,
+from cad_helper.checks import Clearance
+from cad_helper.core import create_document
+from cad_helper.furniture import draw_bench, draw_pergola
+from cad_helper.japanese import (
+    draw_bamboo_fence,
     draw_moss_area,
+    draw_niwaki,
+    draw_stepping_stones,
+    draw_stone_lantern,
+    draw_torii,
+    draw_tsukubai,
+    draw_zen_garden,
 )
-from lib.water import draw_pond, draw_stream, draw_bridge
+from cad_helper.lighting import draw_spotlight
+from cad_helper.planting import draw_hedge, draw_shrub, draw_tree
+from cad_helper.site import draw_compass, draw_fence, draw_house, draw_plot
+from cad_helper.water import draw_bridge, draw_pond, draw_stream
+from cad_helper.zones import draw_rect_zone, draw_zone
 
-OUTPUT = Path(__file__).parent / "backyard.dxf"
+# ─── Configuration (mm; origin = south-west corner, X east, Y north) ────────
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# PROJECT CONFIGURATION
-# ═══════════════════════════════════════════════════════════════════════════════
+PLOT_W = 25_000
+PLOT_L = 40_000
 
-PLOT_W = 25_000   # 25m east-west
-PLOT_L = 40_000   # 40m north-south
+# House 10 x 12 m, pushed north-east so the garden opens to the south-west.
+HOUSE_X, HOUSE_Y = 9_000, 23_000
+HOUSE_W, HOUSE_H = 10_000, 12_000
 
-# House: 10x12m, offset north-east (asymmetric placement)
-HOUSE_W = 10_000
-HOUSE_H = 12_000
-HOUSE_X = 9_000
-HOUSE_Y = PLOT_L - 5_000 - HOUSE_H  # 23000
+# One pedestrian gate, deliberately off-centre.
+GATE_X = PLOT_W / 2 + 2_000
+GATES = [{"side": "south", "center": GATE_X, "opening": 1_500, "label": "MAIN GATE"}]
 
-# Single pedestrian gate — no vehicle gate visible from garden
-GATES = [
-    {
-        "side": "south",
-        "center": PLOT_W / 2 + 2_000,  # off-center
-        "opening": 1_500,
-        "label": "MAIN GATE",
-    },
+# Engawa: covered timber veranda along the south facade.
+ENGAWA_X, ENGAWA_Y = HOUSE_X - 500, HOUSE_Y - 2_500
+ENGAWA_W, ENGAWA_H = HOUSE_W + 1_000, 2_500
+
+# Koi pond, west-centre.
+POND_CX, POND_CY = 6_500, 15_000
+POND_RX, POND_RY = 3_500, 2_500
+
+# Dry garden (karesansui) in the south-west corner, seen from the gate.
+ZEN_X, ZEN_Y = 1_500, 2_500
+ZEN_W, ZEN_H = 9_000, 7_000
+
+# Tea garden (roji) in the north-west corner, behind a bamboo fence.
+TEA_X, TEA_Y = 1_000, PLOT_L - 8_000
+TEA_W, TEA_H = 7_000, 6_000
+TEA_GATE = (4_200, 5_400)  # opening in the bamboo fence, x from-to
+
+# Stream: spring by the house -> under the bridge -> into the pond.
+STREAM = [(5_800, 27_500), (4_600, 25_200), (4_400, 22_600), (5_300, 18_000), (5_700, 16_600)]
+BRIDGE_C = (4_500, 23_900)  # on the stream, where the tea path crosses
+BRIDGE_SPAN = 1_800
+
+BOUNDS = (0, 0, PLOT_W, PLOT_L)
+CLEARANCES = [
+    Clearance("HOUSE", "POND*", 3_000, "water away from foundations"),
+    Clearance("HOUSE", "SAKURA", 2_000, "crown clear of the walls"),
+    Clearance("STEPPING_STONES*", "POND*", 300, "dry approach path"),
+    Clearance("STEPPING_STONES*", "STREAM", 150, "stones stay off the water"),
+    Clearance("STEPPING_STONES*", "FUJIDANA", 300, "path passes beside the pergola"),
 ]
 
-# ─── Engawa (covered wooden veranda) — south side of house ───
-ENGAWA_X = HOUSE_X - 500
-ENGAWA_Y = HOUSE_Y - 2_500
-ENGAWA_W = HOUSE_W + 1_000
-ENGAWA_H = 2_500
-
-# ─── Koi pond — west side, organic shape ───
-POND_CX = 6_000
-POND_CY = 16_000
-POND_RX = 3_500
-POND_RY = 2_500
-
-# ─── Zen garden (karesansui) — south-west corner ───
-ZEN_X = 1_500
-ZEN_Y = 2_500
-ZEN_W = 9_000
-ZEN_H = 7_000
-
-# ─── Tea garden area — north-west corner ───
-TEA_X = 1_000
-TEA_Y = PLOT_L - 8_000
-TEA_W = 7_000
-TEA_H = 6_000
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# BUILD
-# ═══════════════════════════════════════════════════════════════════════════════
 
 def build():
     doc = create_document()
     msp = doc.modelspace()
 
-    # ── Phase 1: Site foundation ──────────────────────────────────────────
-
+    # ── 1. Site ──────────────────────────────────────────────────────────
     draw_plot(msp, doc, width=PLOT_W, length=PLOT_L)
-
-    draw_house(msp, doc,
-               x=HOUSE_X, y=HOUSE_Y,
-               w=HOUSE_W, h=HOUSE_H,
-               entrance_side="south",
-               entrance_width=1_800)
-
+    draw_house(
+        msp,
+        doc,
+        x=HOUSE_X,
+        y=HOUSE_Y,
+        w=HOUSE_W,
+        h=HOUSE_H,
+        entrance_side="south",
+        entrance_width=1_800,
+    )
     draw_fence(msp, doc, width=PLOT_W, length=PLOT_L, gates=GATES)
-    draw_compass(msp, doc, x=-2_000, y=PLOT_L - 2_000)
+    draw_compass(msp, doc, x=-2_500, y=PLOT_L - 2_000)
 
-    # ── Phase 2: Zones ───────────────────────────────────────────────────
+    # ── 2. Zones ─────────────────────────────────────────────────────────
+    draw_rect_zone(
+        msp,
+        doc,
+        x=ENGAWA_X,
+        y=ENGAWA_Y,
+        w=ENGAWA_W,
+        h=ENGAWA_H,
+        name="ENGAWA",
+        color=33,
+        hatch_pattern="LINE",
+        hatch_scale=30,
+    )
+    draw_zone(
+        msp,
+        doc,
+        points=[
+            (TEA_X, TEA_Y),
+            (TEA_X + TEA_W, TEA_Y),
+            (TEA_X + TEA_W - 1_000, TEA_Y + TEA_H),
+            (TEA_X, TEA_Y + TEA_H),
+        ],
+        name="TEA GARDEN",
+        color=83,
+        hatch_pattern="ANSI37",
+        hatch_scale=120,
+    )
 
-    # Engawa (wooden veranda) — transition between house and garden
-    draw_rect_zone(msp, doc,
-                   x=ENGAWA_X, y=ENGAWA_Y, w=ENGAWA_W, h=ENGAWA_H,
-                   name="ENGAWA", color=33, hatch_pattern="LINE", hatch_scale=30)
+    # ── 3. Dry garden: a 3-stone group (heaven, earth, man) and a pair ──
+    draw_zen_garden(
+        msp,
+        doc,
+        [
+            (ZEN_X, ZEN_Y),
+            (ZEN_X + ZEN_W, ZEN_Y),
+            (ZEN_X + ZEN_W - 500, ZEN_Y + ZEN_H),
+            (ZEN_X + 500, ZEN_Y + ZEN_H),
+        ],
+        stones=[
+            {"cx": ZEN_X + 3_000, "cy": ZEN_Y + 3_900, "rx": 500, "ry": 350, "rotation": 15},
+            {
+                "cx": ZEN_X + 3_750,
+                "cy": ZEN_Y + 3_350,
+                "rx": 330,
+                "ry": 240,
+                "rotation": -20,
+                "ripples": 0,
+            },
+            {
+                "cx": ZEN_X + 2_420,
+                "cy": ZEN_Y + 3_300,
+                "rx": 240,
+                "ry": 170,
+                "rotation": 45,
+                "ripples": 0,
+            },
+            {
+                "cx": ZEN_X + 6_800,
+                "cy": ZEN_Y + 4_800,
+                "rx": 420,
+                "ry": 300,
+                "rotation": -10,
+                "ripples": 2,
+            },
+            {
+                "cx": ZEN_X + 7_350,
+                "cy": ZEN_Y + 4_350,
+                "rx": 200,
+                "ry": 150,
+                "rotation": 30,
+                "ripples": 0,
+            },
+        ],
+        rake_spacing=120,
+        rake_angle=0,
+    )
 
-    # Tea garden zone (roji) — north-west
-    draw_zone(msp, doc,
-              points=[(TEA_X, TEA_Y),
-                      (TEA_X + TEA_W, TEA_Y),
-                      (TEA_X + TEA_W - 1_000, TEA_Y + TEA_H),
-                      (TEA_X, TEA_Y + TEA_H)],
-              name="TEA GARDEN", color=83, hatch_pattern="ANSI37", hatch_scale=120)
+    # ── 4. Water ─────────────────────────────────────────────────────────
+    draw_pond(
+        msp,
+        doc,
+        cx=POND_CX,
+        cy=POND_CY,
+        rx=POND_RX,
+        ry=POND_RY,
+        rotation=15,
+        irregular=True,
+        label="KOI POND",
+    )
+    draw_stream(msp, doc, waypoints=STREAM, width=550)
+    draw_bridge(
+        msp,
+        doc,
+        cx=BRIDGE_C[0],
+        cy=BRIDGE_C[1],
+        width=BRIDGE_SPAN,
+        depth=1_000,
+        arched=True,
+        rotation=0,
+    )
 
-    # ── Phase 3: Zen Garden (karesansui) ─────────────────────────────────
+    # ── 5. Paths (stepping stones) ───────────────────────────────────────
+    bridge_w = (BRIDGE_C[0] - BRIDGE_SPAN / 2 - 200, BRIDGE_C[1])
+    bridge_e = (BRIDGE_C[0] + BRIDGE_SPAN / 2 + 200, BRIDGE_C[1])
 
-    zen_boundary = [
-        (ZEN_X, ZEN_Y),
-        (ZEN_X + ZEN_W, ZEN_Y),
-        (ZEN_X + ZEN_W - 500, ZEN_Y + ZEN_H),  # slight asymmetry
-        (ZEN_X + 500, ZEN_Y + ZEN_H),
+    # Gate -> torii -> past the dry garden -> engawa steps.
+    main_path = [
+        (GATE_X, 300),
+        (GATE_X + 300, 3_000),
+        (GATE_X + 1_000, 7_000),
+        (GATE_X + 800, 12_000),
+        (GATE_X + 300, 16_500),
+        (HOUSE_X + 5_000, ENGAWA_Y - 300),
     ]
+    draw_stepping_stones(msp, doc, main_path, stone_size=450, spacing=250)
 
-    draw_zen_garden(msp, doc, zen_boundary,
-                    stones=[
-                        # Main stone group (3 stones — heaven, earth, man)
-                        {"cx": ZEN_X + 3_000, "cy": ZEN_Y + 4_000,
-                         "rx": 500, "ry": 350, "rotation": 15},
-                        {"cx": ZEN_X + 3_800, "cy": ZEN_Y + 3_500,
-                         "rx": 350, "ry": 250, "rotation": -20},
-                        {"cx": ZEN_X + 2_500, "cy": ZEN_Y + 3_200,
-                         "rx": 250, "ry": 180, "rotation": 45},
-                        # Secondary group (2 stones)
-                        {"cx": ZEN_X + 7_000, "cy": ZEN_Y + 5_000,
-                         "rx": 400, "ry": 300, "rotation": -10},
-                        {"cx": ZEN_X + 7_500, "cy": ZEN_Y + 4_400,
-                         "rx": 200, "ry": 150, "rotation": 30},
-                    ],
-                    rake_spacing=120, rake_angle=0)
-
-    # ── Phase 4: Water ───────────────────────────────────────────────────
-
-    # Koi pond — organic shape, west-center
-    draw_pond(msp, doc, cx=POND_CX, cy=POND_CY,
-              rx=POND_RX, ry=POND_RY, rotation=15, irregular=True)
-
-    # Stream from pond flowing south towards zen garden
-    draw_stream(msp, doc,
-                waypoints=[
-                    (POND_CX - 1_000, POND_CY - POND_RY),
-                    (POND_CX - 2_000, POND_CY - POND_RY - 1_500),
-                    (POND_CX - 1_500, POND_CY - POND_RY - 3_000),
-                    (ZEN_X + ZEN_W - 500, ZEN_Y + ZEN_H + 500),
-                ],
-                width=500)
-
-    # Arched bridge over stream
-    draw_bridge(msp, doc,
-                cx=POND_CX - 1_800, cy=POND_CY - POND_RY - 1_200,
-                width=1_800, depth=1_000, arched=True, rotation=30)
-
-    # ── Phase 5: Paths ───────────────────────────────────────────────────
-
-    # Main approach path — stepping stones from gate to house
-    gate_x = PLOT_W / 2 + 2_000
-    main_stepping = [
-        (gate_x, 500),
-        (gate_x - 500, 2_000),
-        (gate_x - 1_500, 4_500),
-        (gate_x - 3_000, 7_000),
-        (HOUSE_X + 3_000, 12_000),
-        (HOUSE_X + 4_000, 16_000),
-        (HOUSE_X + HOUSE_W / 2, ENGAWA_Y - 200),
+    # Engawa -> bridge -> round the spring -> through the bamboo fence to the tsukubai.
+    tea_path_east = [(ENGAWA_X - 200, ENGAWA_Y + 1_200), (6_900, 23_300), bridge_e]
+    tea_path_west = [
+        bridge_w,
+        (2_700, 25_200),
+        (2_800, 28_500),
+        (3_900, 30_700),
+        (sum(TEA_GATE) / 2, TEA_Y - 200),
+        (sum(TEA_GATE) / 2 - 200, TEA_Y + 1_600),
     ]
-    draw_stepping_stones(msp, doc, main_stepping,
-                         stone_size=450, spacing=250)
+    draw_stepping_stones(
+        msp, doc, tea_path_east, stone_size=400, spacing=300, layer="STEPPING_STONES_TEA"
+    )
+    draw_stepping_stones(
+        msp, doc, tea_path_west, stone_size=400, spacing=300, layer="STEPPING_STONES_TEA"
+    )
 
-    # Path to tea garden
-    tea_stepping = [
-        (HOUSE_X, HOUSE_Y + HOUSE_H / 2),
-        (HOUSE_X - 2_000, HOUSE_Y + HOUSE_H / 2 + 1_000),
-        (HOUSE_X - 4_000, HOUSE_Y + HOUSE_H + 1_000),
-        (TEA_X + TEA_W / 2, TEA_Y + 500),
-    ]
-    draw_stepping_stones(msp, doc, tea_stepping,
-                         stone_size=400, spacing=300,
-                         layer="STEPPING_STONES_TEA")
+    # Main path -> along the north shore of the pond -> engawa.
+    pond_path = [(GATE_X + 300, 17_200), (12_800, 18_000), (10_500, 18_700), (8_700, 19_700)]
+    draw_stepping_stones(
+        msp, doc, pond_path, stone_size=400, spacing=250, layer="STEPPING_STONES_POND"
+    )
 
-    # Path around pond
-    pond_stepping = [
-        (POND_CX + POND_RX + 800, POND_CY - 1_000),
-        (POND_CX + POND_RX + 500, POND_CY),
-        (POND_CX + POND_RX + 800, POND_CY + 1_500),
-        (POND_CX + 1_000, POND_CY + POND_RY + 800),
-        (POND_CX - 1_500, POND_CY + POND_RY + 500),
-    ]
-    draw_stepping_stones(msp, doc, pond_stepping,
-                         stone_size=400, spacing=200,
-                         layer="STEPPING_STONES_POND")
+    # ── 6. Structures ────────────────────────────────────────────────────
+    draw_torii(msp, doc, cx=GATE_X + 100, cy=1_800, width=2_200)
 
-    # ── Phase 6: Structures ──────────────────────────────────────────────
+    # Wisteria pergola (fujidana) on the east shore, bench facing the water.
+    draw_pergola(msp, doc, x=10_800, y=12_300, w=3_000, h=2_600, layer="FUJIDANA", color=200)
+    draw_bench(
+        msp, doc, x=11_300, y=13_000, w=2_000, h=500, rotation=90, layer="FURNITURE", color=33
+    )
 
-    # Torii gate at garden entrance
-    draw_torii(msp, doc, cx=gate_x - 500, cy=1_200, width=2_200)
+    draw_tsukubai(msp, doc, cx=TEA_X + 2_200, cy=TEA_Y + 3_200, diameter=800)
 
-    # Wisteria pergola (fujidana) near pond viewing area
-    draw_pergola(msp, doc,
-                 x=POND_CX + POND_RX + 500,
-                 y=POND_CY - 2_000,
-                 w=3_000, h=2_500,
-                 layer="FUJIDANA", color=200)
+    # ── 7. Planting ──────────────────────────────────────────────────────
+    # Niwaki pines: three specimens of different size, never in a row.
+    draw_niwaki(
+        msp, doc, cx=1_900, cy=19_600, crown_diameter=3_000, num_clouds=5, label="Black Pine 1"
+    )
+    draw_niwaki(
+        msp, doc, cx=8_200, cy=10_900, crown_diameter=2_500, num_clouds=4, label="Black Pine 2"
+    )
+    draw_niwaki(
+        msp,
+        doc,
+        cx=TEA_X + TEA_W - 1_300,
+        cy=TEA_Y + TEA_H - 900,
+        crown_diameter=2_000,
+        num_clouds=3,
+        label="Pine 3",
+    )
 
-    # Sitting area under pergola
-    draw_bench(msp, doc,
-               x=POND_CX + POND_RX + 800,
-               y=POND_CY - 1_800,
-               w=2_000, h=500,
-               layer="FURNITURE", color=33)
+    # Japanese maples leaning over the water.
+    draw_tree(
+        msp,
+        doc,
+        cx=10_300,
+        cy=16_900,
+        crown_diameter=2_500,
+        label="Maple 1",
+        layer="MAPLES",
+        color=1,
+    )
+    draw_tree(
+        msp,
+        doc,
+        cx=2_400,
+        cy=13_300,
+        crown_diameter=2_000,
+        label="Maple 2",
+        layer="MAPLES",
+        color=1,
+    )
 
-    # Tsukubai (water basin) in tea garden
-    draw_tsukubai(msp, doc,
-                  cx=TEA_X + 2_500, cy=TEA_Y + 3_000,
-                  diameter=800)
-
-    # ── Phase 7: Planting ────────────────────────────────────────────────
-
-    # Niwaki (cloud-pruned pines) — 3 specimens, asymmetric
-    draw_niwaki(msp, doc,
-                cx=POND_CX - POND_RX - 1_500, cy=POND_CY + 2_000,
-                crown_diameter=3_000, num_clouds=5, label="Black Pine 1")
-    draw_niwaki(msp, doc,
-                cx=POND_CX + 2_000, cy=POND_CY + POND_RY + 2_000,
-                crown_diameter=2_500, num_clouds=4, label="Black Pine 2")
-    draw_niwaki(msp, doc,
-                cx=TEA_X + TEA_W - 500, cy=TEA_Y + TEA_H - 500,
-                crown_diameter=2_000, num_clouds=3, label="Pine 3")
-
-    # Japanese maples (momiji) — smaller, by the pond
-    draw_tree(msp, doc,
-              cx=POND_CX + POND_RX - 500, cy=POND_CY + POND_RY + 500,
-              crown_diameter=2_500, label="Maple 1", layer="MAPLES", color=1)
-    draw_tree(msp, doc,
-              cx=POND_CX - POND_RX + 1_000, cy=POND_CY - 500,
-              crown_diameter=2_000, label="Maple 2", layer="MAPLES", color=1)
-
-    # Cherry trees (sakura) — 3 along east boundary
+    # Sakura along the east fence.
     for i in range(3):
-        draw_tree(msp, doc,
-                  cx=PLOT_W - 3_000,
-                  cy=8_000 + i * 6_000,
-                  crown_diameter=3_500,
-                  label=f"Sakura {i + 1}", layer="SAKURA", color=220)
+        draw_tree(
+            msp,
+            doc,
+            cx=PLOT_W - 3_000,
+            cy=8_000 + i * 6_000,
+            crown_diameter=3_500,
+            label=f"Sakura {i + 1}",
+            layer="SAKURA",
+            color=220,
+        )
 
-    # Bamboo grove — north-east corner (screen planting)
+    # Bamboo grove screening the north-east corner.
     for i in range(7):
-        bx = PLOT_W - 1_500 + (i % 3) * 500 - 500
-        by = PLOT_L - 2_000 - i * 800
-        draw_shrub(msp, doc, cx=bx, cy=by, diameter=800,
-                   layer="BAMBOO", color=3)
+        draw_shrub(
+            msp,
+            doc,
+            cx=PLOT_W - 2_000 + (i % 3) * 500,
+            cy=PLOT_L - 2_000 - i * 800,
+            diameter=800,
+            layer="BAMBOO",
+            color=3,
+        )
 
-    # Azalea mounds — rounded shrubs, 5 in a group near engawa
-    azalea_positions = [
-        (ENGAWA_X - 1_500, ENGAWA_Y + 500),
-        (ENGAWA_X - 2_200, ENGAWA_Y - 300),
-        (ENGAWA_X - 1_000, ENGAWA_Y - 800),
-        (ENGAWA_X + ENGAWA_W + 800, ENGAWA_Y + 300),
-        (ENGAWA_X + ENGAWA_W + 1_500, ENGAWA_Y - 500),
+    # Azalea mounds at both ends of the engawa (3 + 2).
+    azaleas = [
+        (7_300, 21_300),
+        (6_400, 22_100),
+        (7_600, 22_500),
+        (ENGAWA_X + ENGAWA_W + 900, ENGAWA_Y + 600),
+        (ENGAWA_X + ENGAWA_W + 1_900, ENGAWA_Y - 200),
     ]
-    for i, (ax, ay) in enumerate(azalea_positions):
-        draw_shrub(msp, doc, cx=ax, cy=ay,
-                   diameter=1_200 + (i % 3) * 300,
-                   label="" if i > 0 else "Azalea",
-                   layer="AZALEAS", color=220)
+    for i, (ax, ay) in enumerate(azaleas):
+        draw_shrub(
+            msp,
+            doc,
+            cx=ax,
+            cy=ay,
+            diameter=1_000 + (i % 3) * 250,
+            label="Azalea" if i == 0 else "",
+            layer="AZALEAS",
+            color=220,
+        )
 
-    # Moss areas — under trees and around pond
-    draw_moss_area(msp, doc, [
-        (POND_CX - POND_RX - 500, POND_CY - POND_RY + 500),
-        (POND_CX - POND_RX - 2_500, POND_CY - 500),
-        (POND_CX - POND_RX - 3_000, POND_CY + 2_000),
-        (POND_CX - POND_RX - 2_000, POND_CY + 3_500),
-        (POND_CX - POND_RX, POND_CY + POND_RY + 500),
-    ])
+    # Moss under the west pine and inside the roji.
+    draw_moss_area(
+        msp, doc, [(600, 17_600), (3_100, 18_000), (3_600, 20_400), (2_600, 21_700), (700, 21_500)]
+    )
+    draw_moss_area(
+        msp,
+        doc,
+        [
+            (TEA_X + 500, TEA_Y + 500),
+            (TEA_X + 2_600, TEA_Y + 500),
+            (TEA_X + 2_900, TEA_Y + 2_300),
+            (TEA_X + 700, TEA_Y + 2_600),
+        ],
+        layer="MOSS_TEA",
+    )
 
-    draw_moss_area(msp, doc, [
-        (TEA_X + 500, TEA_Y + 500),
-        (TEA_X + TEA_W - 1_500, TEA_Y + 500),
-        (TEA_X + TEA_W - 2_000, TEA_Y + 2_000),
-        (TEA_X + 1_000, TEA_Y + 2_500),
-    ], layer="MOSS_TEA")
+    # Low clipped hedge inside the south fence, west of the gate.
+    draw_hedge(
+        msp, doc, points=[(1_000, 900), (ZEN_X + ZEN_W + 1_000, 900)], hedge_width=600, color=83
+    )
 
-    # Hedge along south fence (low, clipped)
-    draw_hedge(msp, doc,
-               points=[(1_000, 800), (ZEN_X + ZEN_W + 1_000, 800)],
-               hedge_width=600, layer="HEDGES", color=83)
+    # Bamboo screens: behind the dry garden and round the roji, with a gap for the path.
+    draw_bamboo_fence(
+        msp,
+        doc,
+        start=(ZEN_X + 500, ZEN_Y + ZEN_H + 400),
+        end=(ZEN_X + ZEN_W - 500, ZEN_Y + ZEN_H + 400),
+    )
+    draw_bamboo_fence(msp, doc, start=(TEA_X, TEA_Y), end=(TEA_GATE[0], TEA_Y))
+    draw_bamboo_fence(msp, doc, start=(TEA_GATE[1], TEA_Y), end=(TEA_X + TEA_W, TEA_Y))
 
-    # Bamboo fence sections (takegaki) — screening views
-    draw_bamboo_fence(msp, doc,
-                      start=(ZEN_X, ZEN_Y + ZEN_H),
-                      end=(ZEN_X + ZEN_W, ZEN_Y + ZEN_H))
-    draw_bamboo_fence(msp, doc,
-                      start=(TEA_X, TEA_Y),
-                      end=(TEA_X + TEA_W, TEA_Y))
+    # ── 8. Lighting: stone lanterns at viewpoints, a few low spots ──────
+    for cx, cy, size in [
+        (10_200, 11_400, 600),  # pond, by the pergola
+        (ZEN_X + ZEN_W - 1_200, ZEN_Y + ZEN_H - 900, 500),
+        (TEA_X + 1_100, TEA_Y + 4_600, 500),
+        (GATE_X + 2_100, 7_400, 500),  # half-way up the main path
+        (GATE_X + 1_600, 1_500, 600),  # gate
+        (3_600, 25_900, 500),
+    ]:  # spring
+        draw_stone_lantern(msp, doc, cx=cx, cy=cy, size=size)
+    for x in range(int(ENGAWA_X) + 500, int(ENGAWA_X + ENGAWA_W), 2_500):
+        draw_spotlight(msp, doc, x, ENGAWA_Y, layer="LIGHTING_SUBTLE", color=2)
 
-    # ── Phase 8: Lighting ────────────────────────────────────────────────
-
-    # Stone lanterns (toro) — placed at key viewing points
-    draw_stone_lantern(msp, doc,
-                       cx=POND_CX + POND_RX + 300, cy=POND_CY + 1_000,
-                       size=600)
-    draw_stone_lantern(msp, doc,
-                       cx=ZEN_X + ZEN_W - 1_000, cy=ZEN_Y + ZEN_H - 500,
-                       size=500)
-    draw_stone_lantern(msp, doc,
-                       cx=TEA_X + 1_500, cy=TEA_Y + TEA_H - 1_000,
-                       size=500)
-    draw_stone_lantern(msp, doc,
-                       cx=main_stepping[2][0] + 800, cy=main_stepping[2][1],
-                       size=500)
-    draw_stone_lantern(msp, doc,
-                       cx=gate_x + 1_500, cy=1_500,
-                       size=600)
-
-    # Subtle spotlights — engawa edge only
-    for x_pos in range(int(ENGAWA_X), int(ENGAWA_X + ENGAWA_W) + 1, 2_500):
-        draw_spotlight(msp, doc, x_pos, ENGAWA_Y, layer="LIGHTING_SUBTLE", color=2)
-
-    # ── Save ─────────────────────────────────────────────────────────────
-    path = save(doc, OUTPUT)
-    print(f"Built: {path}")
-
-    entities = list(msp)
-    layers = [l.dxf.name for l in doc.layers if l.dxf.name not in ('0', 'Defpoints')]
-    print(f"  {len(entities)} entities across {len(layers)} layers")
-    print(f"  Layers: {', '.join(sorted(layers))}")
-
-    return path
-
-
-if __name__ == "__main__":
-    build()
+    return doc

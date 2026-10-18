@@ -1,0 +1,6 @@
+Built: projects/sofia_garden/sofia_garden.dxf
+  131 entities on 23 layers in 0.1s
+  Preview: projects/sofia_garden/preview.png
+Checks: 2 error(s), 0 warning(s)
+  [error] clearance: FIRE_PIT <-> NIWAKI is 1549 mm, needs >= 3000 mm (sparks vs pine crown)
+  [error] clearance: FIRE_PIT_SEATING <-> POND* is 0 mm, needs >= 300 mm (bench stays on dry ground)

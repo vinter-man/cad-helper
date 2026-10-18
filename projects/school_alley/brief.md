@@ -1,36 +1,43 @@
-# School Alley — Brief
+# Brief: School Alley, Sofia
+
+Client interview (Phase 1). Original notes were partly in Bulgarian.
 
 ## Site
-- **Type**: Училищна алея между две учебни заведения
-- **Dimensions**: 3000mm wide x 50000mm long (3m x 50m)
-- **Curb**: 150mm от двете страни
-- **Total width with curbs**: 3300mm
-- **Orientation**: Изток-Запад (east-west)
-- **Terrain**: Равен
-- **Surroundings**: Поляни и дървета от двете страни; учебни сгради в двата края
-- **Location**: София, България
+
+- Type: a pedestrian alley between two schools
+- Size: 3000 mm wide x 50000 mm long (3 x 50 m)
+- Curb: 150 mm on both sides
+- Total width with curbs: 3300 mm
+- Orientation: east-west
+- Terrain: flat
+- Surroundings: lawns and trees on both sides; school buildings at both ends
+- Location: Sofia, Bulgaria
 
 ## Paving
-- **Tile sizes** (all same thickness):
-  - 600x300mm
-  - 450x300mm
-  - 300x300mm
-  - 300x150mm
-  - 100x100mm
-- **Color scheme**: Светли плочи в центъра, преливащи към тъмни в периферията
-- **Pattern**: Свободна композиция, различни размери, не е нужно перфектно подравняване в 3m
+
+- Tile sizes, all the same thickness:
+  - 600 x 300 mm
+  - 450 x 300 mm
+  - 300 x 300 mm
+  - 300 x 150 mm
+  - 100 x 100 mm
+- Colour: light tiles in the centre, grading to dark at the edges
+- Pattern: free composition of mixed sizes; perfect alignment across the 3 m width is not required
 
 ## Seating
-- **Location**: Двата края на алеята (изток и запад)
-- **Type**: Джобове — разширения встрани от алеята, свързани с нея
-- **Size**: До 3000mm дълбочина
-- **Furniture**: Пейки (без маси)
-- **Pergolas**: Комбинирани (дърво + метал)
+
+- Location: both ends of the alley (east and west)
+- Type: pockets that widen the alley to one side and open onto it
+- Size: up to 3000 mm deep
+- Furniture: benches only, no tables
+- Pergolas: combined timber and metal
 
 ## Planting
-- **Flower compositions**: Около алеята
-- **Shrubs at benches**: Да — до пейките за усещане за уют
+
+- Flower compositions along the alley
+- Shrubs next to the benches, for a sense of shelter
 
 ## Style
-- Модерен, но с природна стилистика
-- Clean lines + natural elements
+
+- Modern, with a natural feel
+- Clean lines plus natural elements

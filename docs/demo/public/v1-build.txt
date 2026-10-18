@@ -1,0 +1,4 @@
+Built: projects/sofia_garden/sofia_garden.dxf
+  186 entities on 24 layers in 0.0s
+  Preview: projects/sofia_garden/preview.png
+Checks: all passed

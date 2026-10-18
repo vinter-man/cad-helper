@@ -1,0 +1,22 @@
+{
+  "name": "cad-helper-demo",
+  "private": true,
+  "description": "Remotion source for the README demo GIF. Replays a real cad-helper session.",
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render src/index.ts Demo out/demo.mp4",
+    "stills": "remotion still Demo ../assets/step-1-brief.png --frame=112 && remotion still Demo ../assets/step-2-first-drawing.png --frame=335 && remotion still Demo ../assets/step-3-revision.png --frame=600",
+    "gif": "npm run render && sh ./make-gif.sh"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.536",
+    "@remotion/google-fonts": "4.0.536",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "remotion": "4.0.536"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.2",
+    "typescript": "5.9.3"
+  }
+}

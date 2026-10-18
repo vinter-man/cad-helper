@@ -1,59 +1,62 @@
-# Проект: Bar Patio Landscaping — Велико Търново
+# Brief: Bar Patio, Veliko Tarnovo
 
-## Интервю (Фаза 1)
+Client interview (Phase 1). Original notes were in Bulgarian.
 
-### Размери и ориентация
-- **Патио размер:** 4м x 4м (4000 x 4000 мм)
-- **Бар размер:** 8м x 4м (вътрешна част)
-- **Ориентация:** 
-  - Юг (долу) — патио + стълби (2 стъпала вход)
-  - Север (горе) — вътрешна част на бара
-  - Изток/Запад — бетонова ограда от двете страни
-- **Форма:** Правоъгълник
-- **Ограда:** Ниска бетонова ограда (~80см) по страните
+## Size and orientation
 
-### Местоположение и климат
-- **Локация:** Велико Търново, стара част на града
-- **Климат:** Континентален (горещо лято, студена зима)
-- **Слънце:** Максимално слънце през деня
-- **Покритие:** Няма тента/зонти — открито патио
-- **Зона:** 6b–7a (USDA), засухоустойчиви растения предпочитани
+- Patio: 4 x 4 m (4000 x 4000 mm)
+- Bar interior: 8 x 4 m
+- South (bottom of the drawing): the patio, entered from the street by 2 steps
+- North (top): the bar interior
+- East and west: low concrete walls on both sides, about 800 mm high
+- Shape: rectangle
 
-### Функция и мебелировка
-- **Работно време:** Само вечери (бар работи вечер)
-- **Маси:** 4 правоъгълни маси, разположени отдолу нагоре (юг→север)
-- **Столове:** Свободно разположени около масите
-- **Пушене:** Всички гости пушат (пепелници на масите)
-- **Осветление:** Фенер(и) на преградата между външна/вътрешна част
+## Location and climate
 
-### Стил и атмосфера
-- **Стил:** Стара Мексика + Царска България 90-те
-- **Атмосфера:** Уют, носталгия, автентичност
-- **Цел:** Усилване на атмосферата чрез растения
-- **Без вода:** Без фонтани, езерца, потоци
+- Veliko Tarnovo, old town
+- Continental climate: hot summers, cold winters
+- USDA zone 6b-7a; drought-tolerant plants preferred
+- Full sun during the day
+- No awning or umbrellas; the patio is open to the sky
 
-### Растителност — изисквания
-- **Основни растения:**
-  - **Лози** (увивни растения) — по оградата, да я скрият
-  - **Кактуси/сукуленти** — в саксии/кашпи (мексикански акцент)
-- **Разположение:**
-  - Саксии между масите/столовете
-  - По ръбовете на патиото
-  - Увивни по оградата
-- **Цъфтящи:** Да — цветове видими вечер
-- **Ароматни:** Да, възможно (лавандула, розмарин и др.)
+## Use and furniture
 
-### Поддръжка и бюджет
-- **Поддръжка:** Седмична (професионален ландскейпър)
-- **Бюджет:** Без ограничения
-- **Сезонност:** Топли месеци (пролет–есен)
-- **Поливане:** Капкова система възможна (има човек за поддръжка)
+- The bar opens in the evenings only
+- 4 rectangular tables, set out from south to north
+- Chairs placed loosely around the tables
+- Every guest smokes; ashtrays go on the tables
+- Lighting: lantern(s) on the partition between the patio and the bar
 
----
+## Style and atmosphere
 
-## Ключови приоритети
-1. Скриване на бетоновата ограда с лози
-2. Мексикански акцент — кактуси в декоративни теракотени саксии
-3. Уютна вечерна атмосфера — ароматни, цъфтящи растения
-4. Не препятстват движението на гостите/персонала
-5. Устойчиви на слънце и засушаване (Велико Търново климат)
+- Style: old Mexico meets Bulgaria in the 1990s
+- Mood: cosy, nostalgic, authentic
+- Planting should carry the atmosphere
+- No water: no fountains, ponds or streams
+
+## Planting requirements
+
+- Main plants:
+  - Grape vines (climbers) along the walls, to hide them
+  - Cacti and succulents in pots, as the Mexican accent
+- Placement:
+  - Pots between the tables and chairs
+  - Along the edges of the patio
+  - Climbers on the walls
+- Flowering: yes, with colour that reads in the evening
+- Fragrant: yes if possible (lavender, rosemary and similar)
+
+## Maintenance and budget
+
+- Weekly maintenance by a professional landscaper
+- No budget limit
+- Season: the warm months, spring to autumn
+- Drip irrigation is possible (someone maintains it)
+
+## Priorities
+
+1. Hide the concrete walls with vines
+2. Mexican accent: cacti in decorative terracotta pots
+3. Cosy evening mood: fragrant, flowering plants
+4. Plants must not block guests or staff
+5. Plants must tolerate sun and drought (Veliko Tarnovo climate)
