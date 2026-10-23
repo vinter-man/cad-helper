@@ -8,7 +8,7 @@ export type Line =
   | {kind: "out" | "ok" | "err"; text: string; at: number};
 
 export const FPS = 30;
-export const DURATION = 690;
+export const DURATION = 640; // ends on the revised drawing, no title card
 
 export const LINES: Line[] = [
   {kind: "user", at: 0, typeFor: 45,
@@ -56,4 +56,3 @@ export const PHASES: {from: number; label: string}[] = [
 export const V1_AT = 262; // first drawing appears
 export const V2_AT = 518; // revised drawing replaces it
 export const FIRE_PIT = {x: 0.3425, y: 0.807}; // fire pit in v2.png, as a fraction of the image
-export const END_AT = 612;

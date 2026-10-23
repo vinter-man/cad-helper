@@ -11,7 +11,7 @@ import {
 } from "remotion";
 import {loadFont as loadMono} from "@remotion/google-fonts/JetBrainsMono";
 import {loadFont as loadSans} from "@remotion/google-fonts/Inter";
-import {END_AT, FIRE_PIT, LINES, Line, PHASES, V1_AT, V2_AT} from "./script";
+import {FIRE_PIT, LINES, Line, PHASES, V1_AT, V2_AT} from "./script";
 
 const {fontFamily: mono} = loadMono("normal", {weights: ["400", "700"], subsets: ["latin"]});
 const {fontFamily: sans} = loadSans("normal", {weights: ["400", "600", "800"], subsets: ["latin"]});
@@ -158,32 +158,12 @@ const Viewport: React.FC<{frame: number}> = ({frame}) => {
   );
 };
 
-// ─── End card ────────────────────────────────────────────────────────────────
-
-const EndCard: React.FC<{frame: number}> = ({frame}) => {
-  const o = interpolate(frame - END_AT, [0, 14], [0, 1], clamp);
-  if (o === 0) return null;
-  return (
-    <AbsoluteFill style={{background: `rgba(13,17,23,${0.97 * o})`, alignItems: "center",
-      justifyContent: "center", fontFamily: sans, color: C.text, opacity: o}}>
-      <div style={{fontSize: 64, fontWeight: 800, letterSpacing: -1}}>cad-helper</div>
-      <div style={{fontSize: 26, color: C.dim, marginTop: 14}}>
-        Describe a garden. Answer a few questions. Get a checked AutoCAD DXF.
-      </div>
-      <div style={{fontFamily: mono, fontSize: 20, marginTop: 34, color: C.accent}}>
-        brief → plan → build → review
-      </div>
-    </AbsoluteFill>
-  );
-};
-
 export const Demo: React.FC = () => {
   const frame = useCurrentFrame();
   return (
     <AbsoluteFill style={{background: C.page, padding: 22, flexDirection: "row", gap: 18}}>
       <Terminal frame={frame} />
       <Viewport frame={frame} />
-      <EndCard frame={frame} />
     </AbsoluteFill>
   );
 };
