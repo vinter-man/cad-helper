@@ -1,7 +1,7 @@
-* 🌱 Started March 2026
-* 🚪 Release v0.2.0
-* 📐 Output: DXF R2010, millimetres, opens in AutoCAD 2010+
-* 🧪 [![CI](https://github.com/vinter-man/cad-helper/actions/workflows/ci.yml/badge.svg)](https://github.com/vinter-man/cad-helper/actions/workflows/ci.yml) on every push
+[![CI](https://github.com/vinter-man/cad-helper/actions/workflows/ci.yml/badge.svg)](https://github.com/vinter-man/cad-helper/actions/workflows/ci.yml)
+![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
+![DXF R2010](https://img.shields.io/badge/output-DXF%20R2010-orange)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 ![main picture](docs/assets/cover.png)
 
@@ -17,7 +17,7 @@ drawing library, then the library builds the DXF, renders a preview and measures
 result against rules like "fire pit at least 3 m from any tree". If a rule breaks, the
 build fails and the agent has to fix the layout before it can say "done".
 
-![demo](docs/assets/demo.gif)
+![demo](docs/assets/demo-session.gif)
 
 ---
 
@@ -28,6 +28,7 @@ build fails and the agent has to fix the layout before it can say "done".
   * [Describe your project](#describe)
   * [Get the drawing](#drawing)
   * [Ask for changes](#changes)
+* [More cases](#more)
   * [Tile layouts](#tiles)
 * [Examples](#examples)
 * [Under the hood](#hood)
@@ -67,7 +68,7 @@ claude
 
 ### <a name="describe"></a> Describe your project
 
-Just write what you want. Russian, Bulgarian, English, whatever. It doesn't jump straight into drawing, first come the questions: where is north, who uses the garden, neighbours, upkeep
+Just write what you want. It doesn't jump straight into drawing, first come the questions: where is north, who uses the garden, neighbours, upkeep
 
 ![step-1](docs/assets/step-1-brief.png)
 
@@ -128,6 +129,8 @@ Checks: 2 error(s), 0 warning(s)
 > ]
 > ```
 > When the checker first appeared in this repo, it found real mistakes in every old example: 8 chairs drawn inside tables, shrubs planted behind the fence, a maple growing in the middle of a pond. Each project's `review.md` says what was found and fixed.
+
+## <a name="more"></a> More cases
 
 ### <a name="tiles"></a> Tile layouts
 
@@ -233,5 +236,3 @@ License: [MIT](LICENSE), take it and draw
 ---
 
 ![meme](docs/assets/meme.png)
-
-> :trollface: `M`, Enter, select, Enter, base point, second point. Saved you a billion tokens

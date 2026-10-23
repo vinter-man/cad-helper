@@ -8,7 +8,8 @@ export type Line =
   | {kind: "out" | "ok" | "err"; text: string; at: number};
 
 export const FPS = 30;
-export const DURATION = 640; // ends on the revised drawing, no title card
+export const DURATION = 690;
+export const FADE_AT = 630; // fade to a dark screen, hold it until the loop restarts
 
 export const LINES: Line[] = [
   {kind: "user", at: 0, typeFor: 45,

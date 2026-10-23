@@ -11,7 +11,7 @@ import {
 } from "remotion";
 import {loadFont as loadMono} from "@remotion/google-fonts/JetBrainsMono";
 import {loadFont as loadSans} from "@remotion/google-fonts/Inter";
-import {FIRE_PIT, LINES, Line, PHASES, V1_AT, V2_AT} from "./script";
+import {FADE_AT, FIRE_PIT, LINES, Line, PHASES, V1_AT, V2_AT} from "./script";
 
 const {fontFamily: mono} = loadMono("normal", {weights: ["400", "700"], subsets: ["latin"]});
 const {fontFamily: sans} = loadSans("normal", {weights: ["400", "600", "800"], subsets: ["latin"]});
@@ -164,6 +164,8 @@ export const Demo: React.FC = () => {
     <AbsoluteFill style={{background: C.page, padding: 22, flexDirection: "row", gap: 18}}>
       <Terminal frame={frame} />
       <Viewport frame={frame} />
+      <AbsoluteFill style={{background: C.page,
+        opacity: interpolate(frame - FADE_AT, [0, 18], [0, 1], clamp)}} />
     </AbsoluteFill>
   );
 };
